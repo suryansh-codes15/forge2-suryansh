@@ -79,7 +79,7 @@ class TicketController extends Controller
 
     public function show(Request $request, Ticket $ticket): JsonResponse
     {
-        $this->authorizeTicket($ticket, $request);
+        \Illuminate\Support\Facades\Gate::authorize('view', $ticket);
 
         return response()->json(
             $ticket->load([
@@ -93,7 +93,7 @@ class TicketController extends Controller
 
     public function update(Request $request, Ticket $ticket): JsonResponse
     {
-        $this->authorizeTicket($ticket, $request);
+        \Illuminate\Support\Facades\Gate::authorize('update', $ticket);
 
         $data = $request->validate([
             'subject'      => 'sometimes|string|max:200',
@@ -153,16 +153,9 @@ class TicketController extends Controller
 
     public function destroy(Request $request, Ticket $ticket): JsonResponse
     {
-        $this->authorizeTicket($ticket, $request);
+        \Illuminate\Support\Facades\Gate::authorize('delete', $ticket);
         $ticket->delete();
         return response()->json(['message' => 'Ticket deleted.']);
-    }
-
-    private function authorizeTicket(Ticket $ticket, Request $request): void
-    {
-        if ($ticket->organization_id !== $request->user()->organization_id) {
-            abort(403, 'Access denied.');
-        }
     }
 
     private function logActivity(Ticket $ticket, int $userId, string $action, array $meta = []): void

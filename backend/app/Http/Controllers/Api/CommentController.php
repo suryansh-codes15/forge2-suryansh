@@ -12,9 +12,7 @@ class CommentController extends Controller
 {
     public function index(Request $request, Ticket $ticket): JsonResponse
     {
-        if ($ticket->organization_id !== $request->user()->organization_id) {
-            abort(403);
-        }
+        \Illuminate\Support\Facades\Gate::authorize('view', $ticket);
         return response()->json(
             $ticket->comments()->with('user:id,name')->latest()->get()
         );
@@ -22,9 +20,7 @@ class CommentController extends Controller
 
     public function store(Request $request, Ticket $ticket): JsonResponse
     {
-        if ($ticket->organization_id !== $request->user()->organization_id) {
-            abort(403);
-        }
+        \Illuminate\Support\Facades\Gate::authorize('update', $ticket);
 
         $data = $request->validate([
             'body' => 'required|string',

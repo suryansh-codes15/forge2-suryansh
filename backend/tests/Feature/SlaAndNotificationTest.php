@@ -209,4 +209,43 @@ class SlaAndNotificationTest extends TestCase
         // Average response time: 1 ticket has responded_at, difference is 60 minutes
         $this->assertEquals(60, $res->json('avg_response_time'));
     }
+
+    public function test_role_based_policy_authorization(): void
+    {
+        $ticket = Ticket::create([
+            'organization_id' => $this->org->id,
+            'requester_id' => $this->customer->id,
+            'subject' => 'Auth test ticket',
+            'description' => 'Security check',
+        ]);
+
+        // Customer User tries to view their own ticket (200)
+        $this->actingAs($this->customer, 'sanctum');
+        $this->getJson("/api/tickets/{$ticket->id}")->assertStatus(200);
+
+        // Create another customer
+        $otherCustomer = User::create([
+            'organization_id' => $this->org->id,
+            'name' => 'Other Customer',
+            'email' => 'other@acme.corp',
+            'password' => bcrypt('password'),
+            'role' => 'customer',
+        ]);
+
+        // Other Customer User tries to view Customer User's ticket (403)
+        $this->actingAs($otherCustomer, 'sanctum');
+        $this->getJson("/api/tickets/{$ticket->id}")->assertStatus(403);
+
+        // Agent can view Customer User's ticket (200)
+        $this->actingAs($this->agent, 'sanctum');
+        $this->getJson("/api/tickets/{$ticket->id}")->assertStatus(200);
+
+        // Agent tries to delete the ticket (403)
+        $this->deleteJson("/api/tickets/{$ticket->id}")->assertStatus(403);
+
+        // Admin can delete the ticket (200)
+        $this->actingAs($this->admin, 'sanctum');
+        $this->deleteJson("/api/tickets/{$ticket->id}")->assertStatus(200);
+        $this->assertNull(Ticket::find($ticket->id));
+    }
 }

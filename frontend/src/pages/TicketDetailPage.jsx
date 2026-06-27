@@ -129,21 +129,56 @@ export default function TicketDetailPage() {
               <p style={{fontSize:'14px', lineHeight:'1.7', whiteSpace:'pre-wrap'}}>{ticket.description}</p>
             </div>
 
+            {/* CSAT Rating Section */}
+            {['resolved', 'closed'].includes(ticket.status) && (
+              <div className="card" style={{padding:'20px', marginBottom:'20px', background:'hsla(250,80%,65%,0.05)', border:'1px solid hsla(250,80%,65%,0.15)'}}>
+                <h4 style={{fontSize:'13px', fontWeight:700, marginBottom:'8px'}}>Customer Satisfaction (CSAT)</h4>
+                {ticket.csat_rating ? (
+                  <p style={{fontSize:'14px'}}>
+                    Rating: {Array.from({ length: ticket.csat_rating }).map((_, i) => '⭐').join('')} ({ticket.csat_rating}/5)
+                  </p>
+                ) : (
+                  user?.role === 'customer' && ticket.requester_id === user.id ? (
+                    <div>
+                      <p style={{fontSize:'13px', marginBottom:'12px', color:'var(--text-muted)'}}>How would you rate the support you received for this issue?</p>
+                      <div style={{display:'flex', gap:'8px'}}>
+                        {[1, 2, 3, 4, 5].map(stars => (
+                          <button
+                            key={stars}
+                            type="button"
+                            className="btn btn-ghost btn-sm"
+                            style={{fontSize:'16px', padding:'6px 12px'}}
+                            onClick={() => patch({ csat_rating: stars })}
+                          >
+                            {stars} ⭐
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <p style={{fontSize:'13px', color:'var(--text-muted)'}}>Feedback has not been submitted yet.</p>
+                  )
+                )}
+              </div>
+            )}
+
             {/* Comment form */}
             <div className="card" style={{padding:'20px', marginBottom:'20px'}}>
               <form onSubmit={handleComment}>
-                <div style={{display:'flex', gap:'8px', marginBottom:'12px'}}>
-                  <button
-                    type="button"
-                    className={`btn btn-sm ${commentType === 'reply' ? 'btn-primary' : 'btn-ghost'}`}
-                    onClick={() => setCommentType('reply')}
-                  >💬 Reply</button>
-                  <button
-                    type="button"
-                    className={`btn btn-sm ${commentType === 'note' ? 'btn-primary' : 'btn-ghost'}`}
-                    onClick={() => setCommentType('note')}
-                  >📝 Internal Note</button>
-                </div>
+                {user?.role !== 'customer' && (
+                  <div style={{display:'flex', gap:'8px', marginBottom:'12px'}}>
+                    <button
+                      type="button"
+                      className={`btn btn-sm ${commentType === 'reply' ? 'btn-primary' : 'btn-ghost'}`}
+                      onClick={() => setCommentType('reply')}
+                    >💬 Reply</button>
+                    <button
+                      type="button"
+                      className={`btn btn-sm ${commentType === 'note' ? 'btn-primary' : 'btn-ghost'}`}
+                      onClick={() => setCommentType('note')}
+                    >📝 Internal Note</button>
+                  </div>
+                )}
                 <textarea
                   id="comment-body"
                   className="form-textarea"
@@ -214,6 +249,7 @@ export default function TicketDetailPage() {
                 className="form-select"
                 value={ticket.status}
                 onChange={e => patch({ status: e.target.value })}
+                disabled={user?.role === 'customer'}
               >
                 {STATUS_OPTIONS.map(s => (
                   <option key={s} value={s} style={{color: STATUS_COLORS[s]}}>{s}</option>
@@ -228,6 +264,7 @@ export default function TicketDetailPage() {
                 className="form-select"
                 value={ticket.priority}
                 onChange={e => patch({ priority: e.target.value })}
+                disabled={user?.role === 'customer'}
               >
                 {PRIORITY_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}
               </select>
@@ -240,6 +277,7 @@ export default function TicketDetailPage() {
                 className="form-select"
                 value={ticket.assigned_to ?? ''}
                 onChange={e => patch({ assigned_to: e.target.value || null })}
+                disabled={user?.role === 'customer'}
               >
                 <option value="">Unassigned</option>
                 {agents.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}

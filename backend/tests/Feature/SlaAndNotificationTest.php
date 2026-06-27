@@ -248,4 +248,29 @@ class SlaAndNotificationTest extends TestCase
         $this->deleteJson("/api/tickets/{$ticket->id}")->assertStatus(200);
         $this->assertNull(Ticket::find($ticket->id));
     }
+
+    public function test_csat_rating_submission(): void
+    {
+        $ticket = Ticket::create([
+            'organization_id' => $this->org->id,
+            'requester_id' => $this->customer->id,
+            'subject' => 'CSAT test ticket',
+            'description' => 'Help needed',
+            'status' => 'resolved',
+        ]);
+
+        $this->actingAs($this->customer, 'sanctum');
+
+        $res = $this->patchJson("/api/tickets/{$ticket->id}", [
+            'csat_rating' => 5,
+        ]);
+
+        $res->assertStatus(200);
+        $this->assertEquals(5, $res->json('csat_rating'));
+
+        $this->assertDatabaseHas('activity_logs', [
+            'ticket_id' => $ticket->id,
+            'action' => 'csat_submitted',
+        ]);
+    }
 }

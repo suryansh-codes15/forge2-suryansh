@@ -61,7 +61,7 @@ class TicketController extends Controller
 
         $ticket = Ticket::create([
             'organization_id' => $request->user()->organization_id,
-            'requester_id'    => $data['requester_id'] ?? null,
+            'requester_id'    => $request->user()->role === 'customer' ? $request->user()->id : ($data['requester_id'] ?? null),
             'subject'         => $data['subject'],
             'description'     => $data['description'],
             'status'          => 'open',
@@ -103,9 +103,10 @@ class TicketController extends Controller
             'assigned_to'  => 'sometimes|nullable|exists:users,id',
             'tags'         => 'sometimes|nullable|array',
             'tags.*'       => 'string',
+            'csat_rating'  => 'sometimes|nullable|integer|min:1|max:5',
         ]);
 
-        $old = $ticket->only(['status', 'priority', 'assigned_to', 'tags']);
+        $old = $ticket->only(['status', 'priority', 'assigned_to', 'tags', 'csat_rating']);
         $ticket->update($data);
 
         if (isset($data['status']) && $data['status'] !== $old['status']) {
@@ -143,6 +144,12 @@ class TicketController extends Controller
             $this->logActivity($ticket, $request->user()->id, 'tags_changed', [
                 'from' => $old['tags'] ?? [],
                 'to'   => $data['tags'] ?? [],
+            ]);
+        }
+
+        if (array_key_exists('csat_rating', $data) && $data['csat_rating'] !== $old['csat_rating']) {
+            $this->logActivity($ticket, $request->user()->id, 'csat_submitted', [
+                'rating' => $data['csat_rating'],
             ]);
         }
 

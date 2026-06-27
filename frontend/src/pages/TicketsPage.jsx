@@ -64,15 +64,42 @@ export default function TicketsPage() {
     }
   };
 
+  const exportCSV = () => {
+    const headers = ['ID', 'Subject', 'Status', 'Priority', 'Requester', 'Assignee', 'Created At'];
+    const rows = tickets.map(t => [
+      t.id,
+      t.subject.replace(/"/g, '""'),
+      t.status,
+      t.priority,
+      t.requester?.name || '',
+      t.assignee?.name || '',
+      new Date(t.created_at).toLocaleString()
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8,\uFEFF"
+      + [headers.join(','), ...rows.map(e => e.map(val => `"${val}"`).join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `pulsedesk_tickets_export_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <>
       <div className="topbar">
         <div>
           <h2>Tickets</h2>
         </div>
-        <button className="btn btn-primary btn-sm bg-accent hover:bg-opacity-90" onClick={() => navigate('/tickets/new')}>
-          + New Ticket
-        </button>
+        <div style={{display:'flex', gap:'8px'}}>
+          <button className="btn btn-ghost btn-sm" onClick={exportCSV}>
+            📥 Export CSV
+          </button>
+          <button className="btn btn-primary btn-sm bg-accent hover:bg-opacity-90" onClick={() => navigate('/tickets/new')}>
+            + New Ticket
+          </button>
+        </div>
       </div>
 
       <div className="page-body">

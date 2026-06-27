@@ -14,6 +14,7 @@ class Ticket extends Model
         'organization_id', 'requester_id', 'assigned_to',
         'subject', 'description', 'status', 'priority', 'tags',
         'response_due_at', 'resolution_due_at', 'responded_at', 'resolved_at',
+        'csat_rating',
     ];
 
     protected $casts = [

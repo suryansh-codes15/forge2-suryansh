@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createTicket, getCustomers } from '../api';
+import { useAuth } from '../AuthContext';
 
 export default function NewTicketPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [customers, setCustomers] = useState([]);
   const [form, setForm] = useState({
     requester_id: '',
@@ -15,8 +17,10 @@ export default function NewTicketPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    getCustomers().then(res => setCustomers(res.data)).catch(() => {});
-  }, []);
+    if (user && user.role !== 'customer') {
+      getCustomers().then(res => setCustomers(res.data)).catch(() => {});
+    }
+  }, [user]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -50,20 +54,22 @@ export default function NewTicketPage() {
           {error && <div className="error-msg">{error}</div>}
           <form onSubmit={handleSubmit}>
 
-            <div className="form-group">
-              <label className="form-label">Requester (Customer)</label>
-              <select
-                id="ticket-requester"
-                className="form-select"
-                value={form.requester_id}
-                onChange={e => setForm({...form, requester_id: e.target.value})}
-              >
-                <option value="">— Select customer —</option>
-                {customers.map(c => (
-                  <option key={c.id} value={c.id}>{c.name} ({c.email})</option>
-                ))}
-              </select>
-            </div>
+            {user?.role !== 'customer' && (
+              <div className="form-group">
+                <label className="form-label">Requester (Customer)</label>
+                <select
+                  id="ticket-requester"
+                  className="form-select"
+                  value={form.requester_id}
+                  onChange={e => setForm({...form, requester_id: e.target.value})}
+                >
+                  <option value="">— Select customer —</option>
+                  {customers.map(c => (
+                    <option key={c.id} value={c.id}>{c.name} ({c.email})</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             <div className="form-group">
               <label className="form-label">Subject</label>

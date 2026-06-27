@@ -26,11 +26,13 @@ function Sidebar({ unreadCount, onToggleNotifications }) {
         <span>{organization?.name || 'Help Desk'}</span>
       </div>
       <nav className="sidebar-nav">
-        <NavLink to="/dashboard" className={({isActive}) => `nav-link${isActive?' active':''}`}>
-          <span className="nav-icon">📊</span> Dashboard
-        </NavLink>
+        {user?.role !== 'customer' && (
+          <NavLink to="/dashboard" className={({isActive}) => `nav-link${isActive?' active':''}`}>
+            <span className="nav-icon">📊</span> Dashboard
+          </NavLink>
+        )}
         <NavLink to="/tickets" className={({isActive}) => `nav-link${isActive?' active':''}`}>
-          <span className="nav-icon">🎫</span> Tickets
+          <span className="nav-icon">🎫</span> {user?.role === 'customer' ? 'My Tickets' : 'Tickets'}
         </NavLink>
         <NavLink to="/tickets/new" className={({isActive}) => `nav-link${isActive?' active':''}`}>
           <span className="nav-icon">✏️</span> New Ticket
@@ -144,6 +146,14 @@ function AppLayout({ children }) {
   );
 }
 
+function DashboardRoute() {
+  const { user } = useAuth();
+  if (user?.role === 'customer') {
+    return <Navigate to="/tickets" replace />;
+  }
+  return <AppLayout><DashboardPage /></AppLayout>;
+}
+
 export default function App() {
   return (
     <AuthProvider>
@@ -154,7 +164,7 @@ export default function App() {
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={
             <ProtectedRoute>
-              <AppLayout><DashboardPage /></AppLayout>
+              <DashboardRoute />
             </ProtectedRoute>
           } />
           <Route path="/tickets" element={

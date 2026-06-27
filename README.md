@@ -72,7 +72,8 @@ The seeder creates:
 
 ## Live URL
 
-Runs locally per the steps above.
+- **Production URL:** [https://frontend-eight-tau-a324wirk80.vercel.app](https://frontend-eight-tau-a324wirk80.vercel.app)
+- **Localtunnel Backend API:** [https://spicy-rabbits-read.loca.lt](https://spicy-rabbits-read.loca.lt) (Bypasses localtunnel warning automatically via custom headers).
 
 ---
 

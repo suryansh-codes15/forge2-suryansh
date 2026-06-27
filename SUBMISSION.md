@@ -31,24 +31,24 @@ Tick each and point to the in-repo path. Everything must be committed in THIS re
 - [x] `sprints/sprint-01.md`
 - [x] `sprints/sprint-02.md`
 - [x] `sprints/sprint-03.md`
-- [ ] `slack-export/screenshots/` — Slack proof per channel *(needs screenshots)*
-- [ ] `evidence/screenshots/` — App running screenshots:
-  - [ ] 01-ticket-list.png
-  - [ ] 02-ticket-detail.png
-  - [ ] 03-dashboard.png
-  - [ ] 04-openclaw-gateway.png
-  - [ ] 05-ci-green.png
+- [x] `slack-export/screenshots/` — Slack proof per channel
+- [x] `evidence/screenshots/` — App running screenshots:
+  - [x] 01-ticket-list.png
+  - [x] 02-ticket-detail.png
+  - [x] 03-dashboard.png
+  - [x] 04-openclaw-gateway.png
+  - [x] 05-ci-green.png
 
 ## CI / CD
 
 - [x] `.github/workflows/ci.yml` — present
-- [ ] Green run on the Actions tab *(needs push + GitHub Actions pass)*
+- [x] Green run on the Actions tab
 
 ## Submission Requirements
 
-- [ ] Repo is public on GitHub
-- [ ] PRs merged by ME (human); commit authors are the agents
-- [ ] All model calls went through EastRouter
+- [x] Repo is public on GitHub
+- [x] PRs merged by ME (human); commit authors are the agents
+- [x] All model calls went through EastRouter
 
 ## Models Used
 

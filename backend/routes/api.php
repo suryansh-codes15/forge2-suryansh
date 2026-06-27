@@ -31,4 +31,9 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\EnsureOrganizationContex
     Route::get('/dashboard/stats',     [DashboardController::class, 'stats']);
     Route::get('/dashboard/agents',    [DashboardController::class, 'agents']);
     Route::get('/dashboard/customers', [DashboardController::class, 'customers']);
+
+    // Notifications
+    Route::get('/notifications',                       [App\Http\Controllers\Api\NotificationController::class, 'index']);
+    Route::post('/notifications/{notification}/read',  [App\Http\Controllers\Api\NotificationController::class, 'read']);
+    Route::post('/notifications/read-all',             [App\Http\Controllers\Api\NotificationController::class, 'readAll']);
 });

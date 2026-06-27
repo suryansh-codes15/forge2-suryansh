@@ -12,6 +12,13 @@ const PRIORITY_COLORS = {
   high: 'var(--orange)', urgent: 'var(--red)',
 };
 
+const formatMinutes = (m) => {
+  if (m < 60) return `${Math.round(m)}m`;
+  const hrs = Math.floor(m / 60);
+  const mins = Math.round(m % 60);
+  return `${hrs}h ${mins}m`;
+};
+
 export default function DashboardPage() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -41,11 +48,11 @@ export default function DashboardPage() {
         {/* Status stat cards */}
         <div className="stats-grid">
           {[
-            { key: 'total', label: 'Total', value: stats?.total || 0, color: 'var(--accent)' },
+            { key: 'total', label: 'Total Tickets', value: stats?.total || 0, color: 'var(--accent)' },
             { key: 'open', label: 'Open', value: byStatus.open || 0, color: 'var(--green)' },
-            { key: 'in_progress', label: 'In Progress', value: byStatus.in_progress || 0, color: 'var(--blue)' },
-            { key: 'resolved', label: 'Resolved', value: byStatus.resolved || 0, color: 'var(--accent)' },
-            { key: 'closed', label: 'Closed', value: byStatus.closed || 0, color: 'var(--text-faint)' },
+            { key: 'pending', label: 'Pending', value: byStatus.pending || 0, color: 'var(--blue)' },
+            { key: 'avg_response', label: 'Avg First Response', value: stats?.avg_response_time ? formatMinutes(stats.avg_response_time) : '—', color: 'var(--yellow)' },
+            { key: 'sla_breach', label: 'SLA Breach Rate', value: stats?.sla_breach_rate !== undefined ? `${stats.sla_breach_rate}%` : '—', color: 'var(--red)' },
           ].map(s => (
             <div key={s.key} className="stat-card">
               <div className="stat-value" style={{color: s.color}}>{s.value}</div>
@@ -54,7 +61,7 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'20px'}}>
+        <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'20px'}}>
           {/* Priority breakdown */}
           <div className="card" style={{padding:'20px'}}>
             <h4 style={{fontSize:'13px', fontWeight:700, marginBottom:'16px'}}>By Priority</h4>
@@ -68,6 +75,26 @@ export default function DashboardPage() {
                 <span style={{fontWeight:700, color: PRIORITY_COLORS[p]}}>{byPriority[p] || 0}</span>
               </div>
             ))}
+          </div>
+
+          {/* Ticket Volume (Last 7 Days) */}
+          <div className="card" style={{padding:'20px'}}>
+            <h4 style={{fontSize:'13px', fontWeight:700, marginBottom:'16px'}}>Ticket Volume (7 Days)</h4>
+            {stats?.tickets_by_day?.length ? stats.tickets_by_day.map(day => (
+              <div key={day.date} style={{display:'flex', alignItems:'center', gap:'10px', marginBottom:'10px', fontSize:'13px'}}>
+                <span style={{flex:1.2, color:'var(--text-muted)', fontSize:'12px'}}>
+                  {new Date(day.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                </span>
+                <div style={{flex: 2, background:'var(--bg-input)', height:'8px', borderRadius:'4px', overflow:'hidden'}}>
+                  <div style={{
+                    background:'var(--accent)',
+                    height:'100%',
+                    width: `${stats.total > 0 ? (day.count / stats.total) * 100 : 0}%`
+                  }} />
+                </div>
+                <span style={{fontWeight:700, minWidth:'20px', textAlign:'right'}}>{day.count}</span>
+              </div>
+            )) : <p style={{color:'var(--text-muted)', fontSize:'13px'}}>No data.</p>}
           </div>
 
           {/* Agent workload */}

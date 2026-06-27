@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getTicket, updateTicket, getComments, createComment, getAgents } from '../api';
+import { useAuth } from '../AuthContext';
 
 const STATUS_OPTIONS  = ['open', 'pending', 'resolved', 'closed'];
 const PRIORITY_OPTIONS = ['low', 'medium', 'high', 'urgent'];
@@ -10,9 +11,20 @@ const STATUS_COLORS = {
   resolved: 'var(--accent)', closed: 'var(--text-faint)',
 };
 
+function formatDuration(ms) {
+  const totalMinutes = Math.floor(ms / 60000);
+  const hours = Math.floor(totalMinutes / 60);
+  const mins = totalMinutes % 60;
+  if (hours === 0) {
+    return `${mins}m`;
+  }
+  return `${hours}h ${mins}m`;
+}
+
 export default function TicketDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [ticket,  setTicket]  = useState(null);
   const [comments, setComments] = useState([]);
@@ -22,6 +34,12 @@ export default function TicketDetailPage() {
   const [commentType, setCommentType] = useState('reply');
   const [posting, setPosting] = useState(false);
   const [error,   setError]   = useState('');
+  const [nowState, setNowState] = useState(new Date());
+
+  useEffect(() => {
+    const t = setInterval(() => setNowState(new Date()), 30000);
+    return () => clearInterval(t);
+  }, []);
 
   const load = () => {
     Promise.all([getTicket(id), getComments(id), getAgents()])
@@ -80,6 +98,15 @@ export default function TicketDetailPage() {
           <h2>#{ticket.id} · {ticket.subject}</h2>
         </div>
         <div style={{display:'flex', gap:'8px', alignItems:'center'}}>
+          {user && ['admin', 'agent'].includes(user.role) && ticket.assigned_to !== user.id && (
+            <button
+              className="btn btn-ghost btn-sm"
+              style={{ background: 'var(--accent-glow)', color: 'var(--accent)', borderColor: 'hsla(250,80%,65%,0.3)' }}
+              onClick={() => patch({ assigned_to: user.id })}
+            >
+              Claim Ticket
+            </button>
+          )}
           <span className={`badge badge-${ticket.status}`}>{ticket.status}</span>
           <span className={`badge badge-${ticket.priority}`}>{ticket.priority}</span>
         </div>
@@ -217,6 +244,47 @@ export default function TicketDetailPage() {
                 <option value="">Unassigned</option>
                 {agents.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
+            </div>
+
+            <div className="meta-section">
+              <h4>SLA Targets</h4>
+              <div style={{display:'flex', flexDirection:'column', gap:'8px', fontSize:'12px'}}>
+                <div>
+                  <div style={{color:'var(--text-muted)', marginBottom:'2px'}}>First Response:</div>
+                  {ticket.responded_at ? (
+                    <span className="badge badge-sla-ok">
+                      Met ({formatDuration(new Date(ticket.responded_at) - new Date(ticket.created_at))})
+                    </span>
+                  ) : (
+                    (() => {
+                      const diff = new Date(ticket.response_due_at) - nowState;
+                      if (diff < 0) {
+                        return <span className="badge badge-sla-breached">Breached (by {formatDuration(Math.abs(diff))})</span>;
+                      } else {
+                        return <span className="badge badge-sla-warning">Due in {formatDuration(diff)}</span>;
+                      }
+                    })()
+                  )}
+                </div>
+
+                <div style={{marginTop:'4px'}}>
+                  <div style={{color:'var(--text-muted)', marginBottom:'2px'}}>Resolution:</div>
+                  {ticket.resolved_at ? (
+                    <span className="badge badge-sla-ok">
+                      Met ({formatDuration(new Date(ticket.resolved_at) - new Date(ticket.created_at))})
+                    </span>
+                  ) : (
+                    (() => {
+                      const diff = new Date(ticket.resolution_due_at) - nowState;
+                      if (diff < 0) {
+                        return <span className="badge badge-sla-breached">Breached (by {formatDuration(Math.abs(diff))})</span>;
+                      } else {
+                        return <span className="badge badge-sla-warning">Due in {formatDuration(diff)}</span>;
+                      }
+                    })()
+                  )}
+                </div>
+              </div>
             </div>
 
             <div className="divider" />

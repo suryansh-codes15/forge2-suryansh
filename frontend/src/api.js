@@ -34,4 +34,9 @@ export const getDashboardStats = () => api.get('/dashboard/stats');
 export const getAgents = () => api.get('/dashboard/agents');
 export const getCustomers = () => api.get('/dashboard/customers');
 
+// Notifications
+export const getNotifications = () => api.get('/notifications');
+export const markNotificationRead = (id) => api.post(`/notifications/${id}/read`);
+export const markAllNotificationsRead = () => api.post('/notifications/read-all');
+
 export default api;

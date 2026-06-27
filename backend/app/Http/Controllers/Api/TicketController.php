@@ -21,10 +21,21 @@ class TicketController extends Controller
         if ($request->filled('priority')) {
             $query->where('priority', $request->priority);
         }
+        if ($request->filled('assigned_to')) {
+            if ($request->assigned_to === 'unassigned') {
+                $query->whereNull('assigned_to');
+            } else {
+                $query->where('assigned_to', $request->assigned_to);
+            }
+        }
+        if ($request->filled('tag')) {
+            $query->whereJsonContains('tags', $request->tag);
+        }
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
                 $q->where('subject', 'like', "%{$request->search}%")
                   ->orWhere('description', 'like', "%{$request->search}%")
+                  ->orWhere('tags', 'like', "%{$request->search}%")
                   ->orWhereHas('requester', fn($u) =>
                       $u->where('name', 'like', "%{$request->search}%")
                         ->orWhere('email', 'like', "%{$request->search}%")
@@ -44,6 +55,8 @@ class TicketController extends Controller
             'description'  => 'required|string',
             'priority'     => 'in:low,medium,high,urgent',
             'requester_id' => 'nullable|exists:users,id',
+            'tags'         => 'nullable|array',
+            'tags.*'       => 'string',
         ]);
 
         $ticket = Ticket::create([
@@ -53,6 +66,7 @@ class TicketController extends Controller
             'description'     => $data['description'],
             'status'          => 'open',
             'priority'        => $data['priority'] ?? 'medium',
+            'tags'            => $data['tags'] ?? [],
         ]);
 
         $this->logActivity($ticket, $request->user()->id, 'created');
@@ -87,9 +101,11 @@ class TicketController extends Controller
             'status'       => 'sometimes|in:open,pending,resolved,closed',
             'priority'     => 'sometimes|in:low,medium,high,urgent',
             'assigned_to'  => 'sometimes|nullable|exists:users,id',
+            'tags'         => 'sometimes|nullable|array',
+            'tags.*'       => 'string',
         ]);
 
-        $old = $ticket->only(['status', 'priority', 'assigned_to']);
+        $old = $ticket->only(['status', 'priority', 'assigned_to', 'tags']);
         $ticket->update($data);
 
         if (isset($data['status']) && $data['status'] !== $old['status']) {
@@ -97,11 +113,36 @@ class TicketController extends Controller
                 'from' => $old['status'],
                 'to'   => $data['status'],
             ]);
+
+            if (in_array($data['status'], ['resolved', 'closed'])) {
+                $ticket->resolved_at = now();
+            } else {
+                $ticket->resolved_at = null;
+            }
+            $ticket->save();
         }
 
         if (array_key_exists('assigned_to', $data) && $data['assigned_to'] !== $old['assigned_to']) {
             $this->logActivity($ticket, $request->user()->id, 'assigned', [
                 'to' => $data['assigned_to'],
+            ]);
+
+            if ($data['assigned_to']) {
+                \App\Models\Notification::create([
+                    'organization_id' => $ticket->organization_id,
+                    'user_id'         => $data['assigned_to'],
+                    'ticket_id'       => $ticket->id,
+                    'type'            => 'assigned',
+                    'title'           => 'Ticket Assigned to You',
+                    'message'         => 'Ticket #' . $ticket->id . ' has been assigned to you by ' . $request->user()->name . '.',
+                ]);
+            }
+        }
+
+        if (array_key_exists('tags', $data) && $data['tags'] !== $old['tags']) {
+            $this->logActivity($ticket, $request->user()->id, 'tags_changed', [
+                'from' => $old['tags'] ?? [],
+                'to'   => $data['tags'] ?? [],
             ]);
         }
 

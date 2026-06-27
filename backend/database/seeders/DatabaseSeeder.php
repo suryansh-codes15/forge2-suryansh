@@ -101,8 +101,38 @@ class DatabaseSeeder extends Seeder
             ['subject' => 'Cannot delete old tickets',       'priority' => 'medium', 'status' => 'open',     'requester' => $cust1, 'assignee' => $agent1],
             ['subject' => 'Webhook endpoint not firing',     'priority' => 'urgent', 'status' => 'pending',  'requester' => $cust2, 'assignee' => $agent2],
         ];
-
         foreach ($tickets as $i => $t) {
+            $tags = [];
+            if (str_contains(strtolower($t['subject']), 'login') || str_contains(strtolower($t['subject']), 'password') || str_contains(strtolower($t['subject']), '2fa')) {
+                $tags = ['auth', 'security'];
+            } elseif (str_contains(strtolower($t['subject']), 'payment') || str_contains(strtolower($t['subject']), 'billing') || str_contains(strtolower($t['subject']), 'invoice')) {
+                $tags = ['billing', 'finance'];
+            } elseif (str_contains(strtolower($t['subject']), 'api') || str_contains(strtolower($t['subject']), 'webhook')) {
+                $tags = ['api', 'integration'];
+            } else {
+                $tags = ['support'];
+            }
+
+            // Staggered creation timestamps
+            $daysAgo = 6 - intval($i / 2); // 6, 6, 5, 5, 4, 4, 3, 3, 2, 2, 1, 1
+            $hoursAgo = ($i % 2) * 5 + 1;
+            $createdAt = now()->subDays($daysAgo)->subHours($hoursAgo)->subMinutes($i * 7);
+
+            // Responded time logic: half are responded quickly, some are slow, some not at all (null)
+            $respondedAt = null;
+            if ($i !== 4 && $i !== 7 && $i !== 11) {
+                // responded within priority limit or slightly over
+                $responseDelayMinutes = ($i % 3 === 0) ? ($i * 15 + 10) : ($i * 90 + 30);
+                $respondedAt = $createdAt->copy()->addMinutes($responseDelayMinutes);
+            }
+
+            // Resolved time logic
+            $resolvedAt = null;
+            if (in_array($t['status'], ['resolved', 'closed'])) {
+                $resolveDelayHours = ($i % 2 === 0) ? ($i + 2) : ($i * 3 + 4);
+                $resolvedAt = $createdAt->copy()->addHours($resolveDelayHours);
+            }
+
             $ticket = Ticket::create([
                 'organization_id' => $org->id,
                 'requester_id'    => $t['requester']->id,
@@ -111,51 +141,84 @@ class DatabaseSeeder extends Seeder
                 'description'     => "This is the full description for: {$t['subject']}. The user is experiencing this issue and needs help from our support team.",
                 'status'          => $t['status'],
                 'priority'        => $t['priority'],
+                'tags'            => $tags,
+                'responded_at'    => $respondedAt,
+                'resolved_at'     => $resolvedAt,
+                'created_at'      => $createdAt,
+                'updated_at'      => $resolvedAt ?? $respondedAt ?? $createdAt,
             ]);
+
+            // Re-resolve SLA times with the correct creation date
+            $ticket->resolveSlaTimes();
+            $ticket->save();
 
             // Activity: created
             ActivityLog::create([
-                'ticket_id' => $ticket->id,
-                'user_id'   => $admin->id,
-                'action'    => 'created',
-                'meta'      => null,
+                'ticket_id'  => $ticket->id,
+                'user_id'    => $admin->id,
+                'action'     => 'created',
+                'meta'       => null,
+                'created_at' => $createdAt,
             ]);
 
             // Activity: assigned (if assigned)
             if ($t['assignee']) {
                 ActivityLog::create([
-                    'ticket_id' => $ticket->id,
-                    'user_id'   => $admin->id,
-                    'action'    => 'assigned',
-                    'meta'      => ['to' => $t['assignee']->id],
+                    'ticket_id'  => $ticket->id,
+                    'user_id'    => $admin->id,
+                    'action'     => 'assigned',
+                    'meta'       => ['to' => $t['assignee']->id],
+                    'created_at' => $createdAt->copy()->addMinutes(2),
                 ]);
             }
 
             // Add a reply comment for every ticket
-            Comment::create([
-                'ticket_id' => $ticket->id,
-                'user_id'   => $t['assignee']?->id ?? $admin->id,
-                'type'      => 'reply',
-                'body'      => "Thank you for reaching out! We are looking into this issue and will get back to you shortly.",
-            ]);
+            if ($respondedAt) {
+                Comment::create([
+                    'ticket_id'  => $ticket->id,
+                    'user_id'    => $t['assignee']?->id ?? $admin->id,
+                    'type'       => 'reply',
+                    'body'       => "Thank you for reaching out! We are looking into this issue and will get back to you shortly.",
+                    'created_at' => $respondedAt,
+                ]);
+
+                ActivityLog::create([
+                    'ticket_id'  => $ticket->id,
+                    'user_id'    => $t['assignee']?->id ?? $admin->id,
+                    'action'     => 'reply_added',
+                    'meta'       => null,
+                    'created_at' => $respondedAt,
+                ]);
+            }
 
             // Add internal note for half the tickets
             if ($i % 2 === 0) {
+                $noteTime = $createdAt->copy()->addHours(1);
                 Comment::create([
-                    'ticket_id' => $ticket->id,
-                    'user_id'   => $t['assignee']?->id ?? $admin->id,
-                    'type'      => 'note',
-                    'body'      => "Internal note: Checked logs. Issue seems to be on our end. Escalating to engineering.",
+                    'ticket_id'  => $ticket->id,
+                    'user_id'    => $t['assignee']?->id ?? $admin->id,
+                    'type'       => 'note',
+                    'body'       => "Internal note: Checked logs. Issue seems to be on our end. Escalating to engineering.",
+                    'created_at' => $noteTime,
+                ]);
+
+                ActivityLog::create([
+                    'ticket_id'  => $ticket->id,
+                    'user_id'    => $t['assignee']?->id ?? $admin->id,
+                    'action'     => 'note_added',
+                    'meta'       => null,
+                    'created_at' => $noteTime,
                 ]);
             }
 
             // Status change activity for resolved/closed tickets
-            if (in_array($t['status'], ['resolved', 'closed'])) {
+            if ($resolvedAt) {
                 ActivityLog::create([
-                    'ticket_id' => $ticket->id,
-                    'user_id'   => $t['assignee']?->id ?? $admin->id,
-                    'action'    => 'status_changed',
-                    'meta'      => ['from' => 'open', 'to' => $t['status']],
+                    'ticket_id'  => $ticket->id,
+                    'user_id'    => $t['assignee']?->id ?? $admin->id,
+                    'action'     => 'status_changed',
+                    'meta'       => ['from' => 'open', 'to' => $t['status']],
+                    'created_at' => $resolvedAt,
                 ]);
             }
         }

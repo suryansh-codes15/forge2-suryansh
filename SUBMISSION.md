@@ -30,6 +30,7 @@ Tick each and point to the in-repo path. Everything must be committed in THIS re
 - [x] `agent-log.md` — human→Hermes→OpenClaw loop with real command outputs
 - [x] `sprints/sprint-01.md`
 - [x] `sprints/sprint-02.md`
+- [x] `sprints/sprint-03.md`
 - [ ] `slack-export/screenshots/` — Slack proof per channel *(needs screenshots)*
 - [ ] `evidence/screenshots/` — App running screenshots:
   - [ ] 01-ticket-list.png
@@ -54,4 +55,4 @@ Tick each and point to the in-repo path. Everything must be committed in THIS re
 - Hermes (planning + code generation)
 - OpenClaw (local inference gateway)
 
-## Sprints Run: 2 (Sprint 01 — Backend, Sprint 02 — Frontend)
+## Sprints Run: 3 (Sprint 01 — Backend, Sprint 02 — Frontend, Sprint 03 — Depth)

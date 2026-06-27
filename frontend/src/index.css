@@ -217,21 +217,43 @@ tbody td { @apply px-4 py-3.5; color: var(--text); vertical-align: middle; }
 
 /* ── Auth Pages ── */
 .auth-page {
-  @apply min-h-screen flex items-center justify-center;
-  background:
-    radial-gradient(ellipse at 20% 20%, hsla(250,80%,30%,0.15) 0%, transparent 60%),
-    radial-gradient(ellipse at 80% 80%, hsla(280,80%,25%,0.1) 0%, transparent 60%),
-    var(--bg);
+  @apply min-h-screen flex items-center justify-center relative overflow-hidden;
+  background: var(--bg);
+}
+
+.auth-page::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  right: -50%;
+  bottom: -50%;
+  background: 
+    radial-gradient(circle at 30% 30%, hsla(250, 80%, 65%, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 70% 70%, hsla(280, 80%, 60%, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 50% 10%, hsla(210, 85%, 60%, 0.08) 0%, transparent 40%);
+  filter: blur(100px);
+  animation: auth-glow 25s infinite alternate ease-in-out;
+  z-index: 1;
+  pointer-events: none;
+}
+
+@keyframes auth-glow {
+  0% { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(180deg) scale(1.15); }
+  100% { transform: rotate(360deg) scale(1); }
 }
 
 .auth-box {
-  @apply w-full;
+  @apply w-full relative;
+  z-index: 10;
   max-width: 420px;
-  background: var(--bg-panel);
-  border: 1px solid var(--border);
+  background: hsla(225, 22%, 10%, 0.7);
+  border: 1px solid hsla(225, 18%, 22%, 0.6);
   border-radius: var(--r-xl);
   padding: 40px;
   box-shadow: var(--shadow-card), var(--shadow-glow);
+  backdrop-filter: blur(20px);
 }
 
 .auth-logo { @apply text-center mb-8; }

@@ -2,7 +2,7 @@
 
 > Multi-tenant SaaS help-desk platform **built by orchestrating Hermes + OpenClaw over Slack**.
 
-[![CI](https://github.com/YOUR_GITHUB_USERNAME/forge2-yourname/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR_GITHUB_USERNAME/forge2-yourname/actions)
+[![CI](https://github.com/suryansh-codes15/forge2-suryansh/actions/workflows/ci.yml/badge.svg)](https://github.com/suryansh-codes15/forge2-suryansh/actions)
 
 ## Stack
 
